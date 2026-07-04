@@ -1,28 +1,32 @@
-import { getPage } from './browser.js';
+import fetch from 'node-fetch';
 import { logger } from '../utils/logger.js';
 
 export const scrapeSearch = async (query) => {
-  let page;
   try {
-    page = await getPage();
-    // Use DuckDuckGo HTML version for fast, JS-free scraping
     const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
-    
-    await page.goto(searchUrl, { waitUntil: 'domcontentloaded', timeout: 10000 });
-    
-    const results = await page.evaluate(() => {
-      const anchors = Array.from(document.querySelectorAll('.result__url'));
-      return anchors.map(el => {
-        // textContent contains spaces and newlines sometimes, split by space and take first
-        const text = el.textContent.trim().split(' ')[0];
-        return text;
-      }).slice(0, 5); // Take top 5
+    const res = await fetch(searchUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5'
+      }
     });
+
+    if (!res.ok) {
+      throw new Error(`DuckDuckGo returned ${res.status}`);
+    }
+
+    const html = await res.text();
+    const regex = /class="result__url[^>]*href="[^"]*uddg=([^&"]+)/g;
     
-    if (page) await page.close();
-    
+    let match;
+    const urls = [];
+    while ((match = regex.exec(html)) !== null && urls.length < 5) {
+      urls.push(decodeURIComponent(match[1]));
+    }
+
     // Normalize extracted domains/URLs to https://domain format
-    return results.map(r => {
+    return urls.map(r => {
       let urlStr = r;
       if (!urlStr.startsWith('http')) {
         urlStr = `https://${urlStr}`;
@@ -32,7 +36,6 @@ export const scrapeSearch = async (query) => {
 
   } catch (error) {
     logger.error(`DuckDuckGo scraper error: ${error.message}`);
-    if (page) await page.close().catch(() => {});
     throw new Error('Failed to fetch search results');
   }
 };

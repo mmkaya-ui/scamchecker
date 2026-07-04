@@ -60,7 +60,8 @@ router.post('/', async (req, res, next) => {
     }
 
     // 3. Run Checks (reusing check.js logic)
-    const responses = await Promise.all(validUrls.map(async (u) => {
+    const responses = [];
+    for (const u of validUrls) {
       const urlCacheKey = `trustedlens_${u.normalized}`;
       let checkResults = cache.get(urlCacheKey);
 
@@ -71,7 +72,7 @@ router.post('/', async (req, res, next) => {
 
       const aggregated = aggregateScore(checkResults);
 
-      return {
+      responses.push({
         url: u.original,
         domain: u.domain,
         trustScore: aggregated.trustScore,
@@ -89,8 +90,8 @@ router.post('/', async (req, res, next) => {
           urlvoid: `https://www.urlvoid.com/scan/${u.domain}/`,
           scamvoid: `https://www.scamvoid.net/check/${u.domain}/`
         }
-      };
-    }));
+      });
+    }
 
     // 4. Rank Results
     let ranking = [];

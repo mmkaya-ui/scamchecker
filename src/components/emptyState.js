@@ -5,7 +5,7 @@ export const renderEmptyState = () => `
     </svg>
     <h2 style="font-size: 1.25rem; margin-bottom: 0.5rem;">Ready to Scan</h2>
     <p style="color: var(--text-secondary); max-width: 400px; margin: 0 auto;">
-      Enter one or more URLs above to begin. TrustLens will analyze them against multiple threat intelligence databases and scam blocklists.
+      Enter one or more URLs above to begin. TrustedLens will analyze them against multiple threat intelligence databases and scam blocklists.
     </p>
   </div>
 `;

@@ -13,7 +13,7 @@ export const checkSafeBrowsing = async (urlStr) => {
     
     const payload = {
       client: {
-        clientId: "trustlens",
+        clientId: "trustedlens",
         clientVersion: "1.0.0"
       },
       threatInfo: {

@@ -61,7 +61,7 @@ router.post('/', async (req, res, next) => {
 
     // 3. Run Checks (reusing check.js logic)
     const responses = await Promise.all(validUrls.map(async (u) => {
-      const urlCacheKey = `trustlens_${u.normalized}`;
+      const urlCacheKey = `trustedlens_${u.normalized}`;
       let checkResults = cache.get(urlCacheKey);
 
       if (!checkResults) {

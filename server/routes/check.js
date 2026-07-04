@@ -58,7 +58,7 @@ router.post('/', validateUrls, async (req, res, next) => {
     const { validUrls } = req;
     
     const responses = await Promise.all(validUrls.map(async (u) => {
-      const cacheKey = `trustlens_${u.normalized}`;
+      const cacheKey = `trustedlens_${u.normalized}`;
       let checkResults = cache.get(cacheKey);
 
       if (!checkResults) {

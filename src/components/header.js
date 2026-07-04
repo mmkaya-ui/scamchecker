@@ -6,7 +6,7 @@ export const renderHeader = () => `
         <circle cx="12" cy="11" r="3"></circle>
         <line x1="14.5" y1="13.5" x2="16.5" y2="15.5"></line>
       </svg>
-      TrustLens
+      TrustedLens
     </h1>
     <p>Check any website's trust score across 9 security databases</p>
   </header>

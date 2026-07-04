@@ -15,6 +15,10 @@ const getLaunchOptions = () => {
     '--disable-gpu',
     '--no-first-run',
     '--no-zygote',
+    '--single-process',
+    '--disable-site-isolation-trials',
+    '--disable-features=IsolateOrigins,site-per-process',
+    '--js-flags="--max-old-space-size=128"'
   ];
 
   if (config.proxyUrl) {

@@ -22,8 +22,7 @@
     "pino": "^9.3.1",
     "pino-pretty": "^11.2.1",
     "puppeteer": "^22.12.1",
-    "socks-proxy-agent": "^8.0.4",
-    "whois-json": "^2.0.4"
+    "socks-proxy-agent": "^8.0.4"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",

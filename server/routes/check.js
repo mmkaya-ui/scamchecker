@@ -8,7 +8,6 @@ import { checkIpqs } from '../services/ipqs.js';
 import { checkSafeBrowsing } from '../services/safebrowsing.js';
 import { checkVirusTotal } from '../services/virustotal.js';
 import { checkScamAdviser } from '../services/scamadviser.js';
-import { checkWhois } from '../services/whois.js';
 import { checkSsl } from '../services/ssl.js';
 
 // Scrapers
@@ -32,7 +31,6 @@ export const runAllChecks = async (urlStr, domain) => {
     scamvoid: scrapeScamVoid(urlStr),
     urlvoid: scrapeUrlVoid(urlStr),
     trustpilot: scrapeTrustpilot(urlStr),
-    whois: checkWhois(urlStr),
     ssl: checkSsl(urlStr)
   };
 

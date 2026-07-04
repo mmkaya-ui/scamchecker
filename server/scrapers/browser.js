@@ -23,10 +23,16 @@ const getLaunchOptions = () => {
     args.push(`--proxy-server=${config.proxyUrl}`);
   }
 
-  return {
+  const options = {
     headless: 'new',
     args
   };
+  
+  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+    options.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+  }
+
+  return options;
 };
 
 let browserLock = Promise.resolve();

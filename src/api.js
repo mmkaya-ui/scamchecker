@@ -1,6 +1,8 @@
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
 export const checkUrls = async (urls) => {
   try {
-    const response = await fetch('/api/check', {
+    const response = await fetch(`${API_BASE}/api/check`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -22,7 +24,7 @@ export const checkUrls = async (urls) => {
 
 export const searchQuery = async (query) => {
   try {
-    const response = await fetch('/api/search', {
+    const response = await fetch(`${API_BASE}/api/search`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

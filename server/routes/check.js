@@ -22,24 +22,23 @@ const cache = new NodeCache({ stdTTL: 900 }); // 15 minutes
 const router = express.Router();
 
 export const runAllChecks = async (urlStr, domain) => {
-  // Execute all checks in parallel, wrapped in allSettled so one failure doesn't kill the batch
-  const promises = {
+  // Execute API checks in parallel
+  const apiPromises = {
     ipqs: checkIpqs(urlStr),
     safebrowsing: checkSafeBrowsing(urlStr),
     virustotal: checkVirusTotal(urlStr),
     scamadviser: checkScamAdviser(urlStr),
-    scamvoid: scrapeScamVoid(urlStr),
-    urlvoid: scrapeUrlVoid(urlStr),
-    trustpilot: scrapeTrustpilot(urlStr),
     ssl: checkSsl(urlStr)
   };
 
-  const entries = Object.entries(promises);
-  const resultsArr = await Promise.allSettled(entries.map(e => e[1]));
-  
   const results = {};
-  entries.forEach(([key], index) => {
-    const outcome = resultsArr[index];
+  
+  // Await API checks
+  const apiEntries = Object.entries(apiPromises);
+  const apiResultsArr = await Promise.allSettled(apiEntries.map(e => e[1]));
+  
+  apiEntries.forEach(([key], index) => {
+    const outcome = apiResultsArr[index];
     if (outcome.status === 'fulfilled') {
       results[key] = outcome.value;
     } else {
@@ -47,6 +46,25 @@ export const runAllChecks = async (urlStr, domain) => {
       results[key] = { available: false, error: 'Internal error' };
     }
   });
+
+  // Run Puppeteer scrapers SEQUENTIALLY to prevent Render 512MB RAM OOM kills
+  try {
+    results.scamvoid = await scrapeScamVoid(urlStr);
+  } catch (e) {
+    results.scamvoid = { available: false, error: 'Internal error' };
+  }
+  
+  try {
+    results.urlvoid = await scrapeUrlVoid(urlStr);
+  } catch (e) {
+    results.urlvoid = { available: false, error: 'Internal error' };
+  }
+  
+  try {
+    results.trustpilot = await scrapeTrustpilot(urlStr);
+  } catch (e) {
+    results.trustpilot = { available: false, error: 'Internal error' };
+  }
 
   return results;
 };

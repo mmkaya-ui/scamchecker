@@ -1,7 +1,11 @@
-export const renderLoader = (urlCount) => {
+export const renderLoader = (count, type = 'scan') => {
+  const title = type === 'search' 
+    ? `Searching for top results and verifying...` 
+    : `Scanning ${count} URL${count > 1 ? 's' : ''}...`;
+
   return `
     <div class="loader-section">
-      <h2 style="font-size: 1.5rem; margin-bottom: 1rem;">Scanning ${urlCount} URL${urlCount > 1 ? 's' : ''}...</h2>
+      <h2 style="font-size: 1.5rem; margin-bottom: 1rem;">${title}</h2>
       <p style="color: var(--text-secondary);">Querying 9 security databases in real-time</p>
       
       <div class="loader-bar"></div>

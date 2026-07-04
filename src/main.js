@@ -1,7 +1,9 @@
 import { state } from './state.js';
-import { checkUrls } from './api.js';
+import { checkUrls, searchQuery } from './api.js';
 import { renderHeader } from './components/header.js';
+import { renderTabs } from './components/tabs.js';
 import { renderUrlInput, bindUrlInputEvents } from './components/urlInput.js';
+import { renderSearchInput, bindSearchInputEvents } from './components/searchInput.js';
 import { renderEmptyState } from './components/emptyState.js';
 import { renderLoader } from './components/loader.js';
 import { renderRanking, animateRankingBars } from './components/ranking.js';
@@ -11,15 +13,42 @@ import { showToast } from './components/toast.js';
 
 const app = document.getElementById('app');
 
+let activeTab = 'scan'; // 'scan' or 'search'
+
 const renderApp = () => {
   app.innerHTML = `
     ${renderHeader()}
-    ${renderUrlInput()}
+    ${renderTabs(activeTab)}
+    <div id="input-container">
+      ${activeTab === 'scan' ? renderUrlInput() : renderSearchInput()}
+    </div>
     <div id="main-content"></div>
   `;
   
-  bindUrlInputEvents(handleScan);
+  bindEvents();
   renderContent();
+};
+
+const bindEvents = () => {
+  if (activeTab === 'scan') {
+    bindUrlInputEvents(handleScan);
+  } else {
+    bindSearchInputEvents(handleSearch);
+  }
+
+  // Bind tab clicks
+  const tabBtns = document.querySelectorAll('.tab-btn');
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const targetTab = e.currentTarget.dataset.tab;
+      if (activeTab !== targetTab) {
+        activeTab = targetTab;
+        // Reset state on tab switch
+        state.set({ loading: false, results: null, error: null, urls: [] });
+        renderApp(); // Re-render everything
+      }
+    });
+  });
 };
 
 const renderContent = () => {
@@ -29,7 +58,9 @@ const renderContent = () => {
   const { loading, results, error, urls } = state.get();
 
   if (loading) {
-    content.innerHTML = renderLoader(urls.length);
+    // If search, we don't have URLs count initially, just show 5
+    const count = activeTab === 'scan' ? urls.length : 5;
+    content.innerHTML = renderLoader(count, activeTab);
     return;
   }
 
@@ -88,9 +119,33 @@ const handleScan = async (urls) => {
     showToast(`Error: ${error.message}`, 'error');
     renderContent();
   } finally {
-    // Reset button state
     const textarea = document.getElementById('url-input');
     if (textarea) textarea.dispatchEvent(new Event('input'));
+  }
+};
+
+const handleSearch = async (query) => {
+  state.set({ loading: true, urls: [], error: null });
+  
+  const btn = document.getElementById('btn-search');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Searching & Verifying...';
+  }
+  
+  renderContent();
+
+  try {
+    const data = await searchQuery(query);
+    state.set({ loading: false, results: data });
+    showToast('Search complete!', 'success');
+  } catch (error) {
+    state.set({ loading: false, error: error.message });
+    showToast(`Error: ${error.message}`, 'error');
+    renderContent();
+  } finally {
+    const input = document.getElementById('search-input');
+    if (input) input.dispatchEvent(new Event('input'));
   }
 };
 

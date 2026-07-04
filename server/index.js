@@ -6,6 +6,7 @@ import { logger, requestLogger } from './utils/logger.js';
 import { apiLimiter } from './middleware/rateLimiter.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import checkRouter from './routes/check.js';
+import searchRouter from './routes/search.js';
 import { closeBrowser } from './scrapers/browser.js';
 
 // Unhandled errors
@@ -32,8 +33,8 @@ app.use(express.json({ limit: '100kb' }));
 app.use(requestLogger);
 
 // API Routes (with rate limiting)
-app.use('/api', apiLimiter);
-app.use('/api/check', checkRouter);
+app.use('/api/check', apiLimiter, checkRouter);
+app.use('/api/search', apiLimiter, searchRouter);
 
 // Global Error Handler
 app.use(errorHandler);

@@ -22,7 +22,7 @@ const cache = new NodeCache({ stdTTL: 900 }); // 15 minutes
 
 const router = express.Router();
 
-const runAllChecks = async (urlStr, domain) => {
+export const runAllChecks = async (urlStr, domain) => {
   // Execute all checks in parallel, wrapped in allSettled so one failure doesn't kill the batch
   const promises = {
     ipqs: checkIpqs(urlStr),

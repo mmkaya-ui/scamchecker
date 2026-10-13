@@ -27,7 +27,7 @@ router.post('/', async (req, res, next) => {
       return res.json(cachedResponse);
     }
 
-    // 1. Scrape DDG for top URLs
+    // 1. Scrape for top URLs
     const urls = await scrapeSearch(query);
     
     if (urls.length === 0) {
@@ -59,9 +59,8 @@ router.post('/', async (req, res, next) => {
       return res.status(400).json({ error: 'No safe URLs found in search results.' });
     }
 
-    // 3. Run Checks (reusing check.js logic)
-    const responses = [];
-    for (const u of validUrls) {
+    // 3. Run Checks in parallel
+    const responses = await Promise.all(validUrls.map(async (u) => {
       const urlCacheKey = `trustedlens_${u.normalized}`;
       let checkResults = cache.get(urlCacheKey);
 
@@ -72,7 +71,7 @@ router.post('/', async (req, res, next) => {
 
       const aggregated = aggregateScore(checkResults);
 
-      responses.push({
+      return {
         url: u.original,
         domain: u.domain,
         trustScore: aggregated.trustScore,
@@ -90,8 +89,8 @@ router.post('/', async (req, res, next) => {
           urlvoid: `https://www.urlvoid.com/scan/${u.domain}/`,
           scamvoid: `https://www.scamvoid.net/check/${u.domain}/`
         }
-      });
-    }
+      };
+    }));
 
     // 4. Rank Results
     let ranking = [];

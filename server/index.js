@@ -7,7 +7,6 @@ import { apiLimiter } from './middleware/rateLimiter.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import checkRouter from './routes/check.js';
 import searchRouter from './routes/search.js';
-import { closeBrowser } from './scrapers/browser.js';
 
 // Unhandled errors
 process.on('unhandledRejection', (reason) => {
@@ -23,14 +22,19 @@ const app = express();
 // Security headers
 app.use(helmet());
 
-// CORS - restrict to local/prod
-app.use(cors({ origin: process.env.NODE_ENV === 'production' ? process.env.FRONTEND_URL : 'http://localhost:5173' }));
+// CORS - allow all origins so requests from any client are accepted
+app.use(cors());
 
 // Body parsing (limit size to prevent attacks)
 app.use(express.json({ limit: '100kb' }));
 
 // Logging
 app.use(requestLogger);
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', uptime: process.uptime() });
+});
 
 // API Routes (with rate limiting)
 app.use('/api/check', apiLimiter, checkRouter);
@@ -39,29 +43,22 @@ app.use('/api/search', apiLimiter, searchRouter);
 // Global Error Handler
 app.use(errorHandler);
 
-// Handle graceful shutdown
+// Start server
 const server = app.listen(config.port, () => {
   logger.info(`Server running on port ${config.port}`);
 });
 
-const gracefulShutdown = async () => {
+const gracefulShutdown = () => {
   logger.info('Shutting down...');
-  try {
-    await closeBrowser();
-  } catch (err) {
-    logger.error('Error closing browser during shutdown:', err);
-  }
-  
   server.close(() => {
     logger.info('HTTP server closed.');
     process.exit(0);
   });
   
-  // Force kill after 10s if connections hang
   setTimeout(() => {
-    logger.error('Forcing shutdown after 10s due to hanging connections');
+    logger.error('Forcing shutdown after 5s');
     process.exit(1);
-  }, 10000).unref();
+  }, 5000).unref();
 };
 
 process.on('SIGTERM', gracefulShutdown);

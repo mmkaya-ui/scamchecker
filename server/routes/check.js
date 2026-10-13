@@ -10,7 +10,7 @@ import { checkVirusTotal } from '../services/virustotal.js';
 import { checkScamAdviser } from '../services/scamadviser.js';
 import { checkSsl } from '../services/ssl.js';
 
-// Scrapers
+// Scrapers (all lightweight node-fetch now)
 import { scrapeScamVoid } from '../scrapers/scamvoid.js';
 import { scrapeUrlVoid } from '../scrapers/urlvoid.js';
 import { scrapeTrustpilot } from '../scrapers/trustpilot.js';
@@ -22,23 +22,24 @@ const cache = new NodeCache({ stdTTL: 900 }); // 15 minutes
 const router = express.Router();
 
 export const runAllChecks = async (urlStr, domain) => {
-  // Execute API checks in parallel
-  const apiPromises = {
+  // Execute all checks in parallel with Promise.allSettled
+  const promises = {
     ipqs: checkIpqs(urlStr),
     safebrowsing: checkSafeBrowsing(urlStr),
     virustotal: checkVirusTotal(urlStr),
     scamadviser: checkScamAdviser(urlStr),
-    ssl: checkSsl(urlStr)
+    ssl: checkSsl(urlStr),
+    scamvoid: scrapeScamVoid(urlStr),
+    urlvoid: scrapeUrlVoid(urlStr),
+    trustpilot: scrapeTrustpilot(urlStr)
   };
 
+  const entries = Object.entries(promises);
+  const resultsArr = await Promise.allSettled(entries.map(e => e[1]));
+  
   const results = {};
-  
-  // Await API checks
-  const apiEntries = Object.entries(apiPromises);
-  const apiResultsArr = await Promise.allSettled(apiEntries.map(e => e[1]));
-  
-  apiEntries.forEach(([key], index) => {
-    const outcome = apiResultsArr[index];
+  entries.forEach(([key], index) => {
+    const outcome = resultsArr[index];
     if (outcome.status === 'fulfilled') {
       results[key] = outcome.value;
     } else {
@@ -47,25 +48,6 @@ export const runAllChecks = async (urlStr, domain) => {
     }
   });
 
-  // Run Puppeteer scrapers SEQUENTIALLY to prevent Render 512MB RAM OOM kills
-  try {
-    results.scamvoid = await scrapeScamVoid(urlStr);
-  } catch (e) {
-    results.scamvoid = { available: false, error: 'Internal error' };
-  }
-  
-  try {
-    results.urlvoid = await scrapeUrlVoid(urlStr);
-  } catch (e) {
-    results.urlvoid = { available: false, error: 'Internal error' };
-  }
-  
-  try {
-    results.trustpilot = await scrapeTrustpilot(urlStr);
-  } catch (e) {
-    results.trustpilot = { available: false, error: 'Internal error' };
-  }
-
   return results;
 };
 
@@ -73,8 +55,8 @@ router.post('/', validateUrls, async (req, res, next) => {
   try {
     const { validUrls } = req;
     
-    const responses = [];
-    for (const u of validUrls) {
+    // Check all valid URLs in parallel
+    const responses = await Promise.all(validUrls.map(async (u) => {
       const cacheKey = `trustedlens_${u.normalized}`;
       let checkResults = cache.get(cacheKey);
 
@@ -85,7 +67,7 @@ router.post('/', validateUrls, async (req, res, next) => {
 
       const aggregated = aggregateScore(checkResults);
 
-      responses.push({
+      return {
         url: u.original,
         domain: u.domain,
         trustScore: aggregated.trustScore,
@@ -103,8 +85,8 @@ router.post('/', validateUrls, async (req, res, next) => {
           urlvoid: `https://www.urlvoid.com/scan/${u.domain}/`,
           scamvoid: `https://www.scamvoid.net/check/${u.domain}/`
         }
-      });
-    }
+      };
+    }));
 
     // Generate ranking (if more than 1 URL)
     let ranking = [];
